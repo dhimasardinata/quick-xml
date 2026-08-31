@@ -1,0 +1,20 @@
+name: bench-fork
+on:
+  push:
+    branches: [perf/*, ci/*]
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.86.0
+      - name: bench microbenches (verifiable, no push to upstream)
+        run: |
+          cargo bench --bench microbenches -- --sample-size 30 --warm-up-time 1 --measurement-time 2 | tee bench.log
+          echo "=== bench.log ==="; cat bench.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-log-${{ github.sha }}
+          path: bench.log
