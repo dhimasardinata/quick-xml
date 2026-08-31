@@ -1,20 +1,28 @@
 name: bench-fork
 on:
   push:
-    branches: [perf/*, ci/*]
+    branches: [ci/bench-fork]
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'bench branch in fork (e.g. perf/escape-simd-405)'
+        required: true
+        default: 'perf/escape-simd-405'
 
 jobs:
   bench:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+          repository: dhimasardinata/quick-xml
       - uses: dtolnay/rust-toolchain@1.86.0
-      - name: bench microbenches (verifiable, no push to upstream)
+      - name: bench microbenches (fork only, no upstream push)
         run: |
           cargo bench --bench microbenches -- --sample-size 30 --warm-up-time 1 --measurement-time 2 | tee bench.log
-          echo "=== bench.log ==="; cat bench.log
+          echo "=== bench.log verifiable ==="; cat bench.log; echo "commit:$(git rev-parse HEAD)"
       - uses: actions/upload-artifact@v4
         with:
-          name: bench-log-${{ github.sha }}
+          name: bench-log-${{ inputs.branch || github.ref_name }}-${{ github.sha }}
           path: bench.log
